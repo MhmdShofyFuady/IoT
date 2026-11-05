@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard jaringan lokal untuk pemantauan sensor dan kendali penyiraman tanaman otomatis berbasis ESP32.">
+  <title>Smart Garden Guard: Dashboard Penyiraman Otomatis ESP32</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <h1 class="app-title">Smart Garden Guard</h1>
+        <p class="app-subtitle">Sistem penyiraman tanaman otomatis berbasis ESP32</p>
+      </div>
+      <div class="meta-bar" aria-live="polite">
+        <span id="connBadge" class="badge badge-online">Terhubung</span>
+        <span id="sysStatusBadge" class="badge badge-status-normal">Status: Normal</span>
+        <span class="meta-item">Terakhir update: <strong id="lastUpdateText">00:00:00</strong></span>
+        <span class="meta-item">Uptime: <strong id="uptimeText">00:00:00</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="alarmBanner" class="alarm-banner" hidden role="alert">
+      <strong>Peringatan: Air tandon habis.</strong> Pompa dikunci otomatis ke posisi mati dan alarm buzzer diaktifkan (Pin 13). Isi ulang tandon air untuk melanjutkan penyiraman.
+    </div>
+
+    <section class="metrics-grid" aria-label="Pembacaan sensor real-time">
+      <article class="metric-panel">
+        <div class="metric-head">
+          <h2 class="metric-title">Kelembapan tanah</h2>
+          <span class="pin-tag">Pin 34 (ADC1)</span>
+        </div>
+        <div class="metric-reading">
+          <span id="soilPctVal" class="metric-number">55</span>
+          <span class="metric-unit">%</span>
+        </div>
+        <div class="meter-track" aria-hidden="true">
+          <div id="soilMeterBar" class="meter-fill meter-soil"></div>
+        </div>
+        <p class="metric-foot">ADC mentah: <span id="soilRawVal">1840</span> dari 4095 (kering &lt; <span id="lblDry">35</span>%, basah &ge; <span id="lblWet">65</span>%)</p>
+      </article>
+
+      <article class="metric-panel">
+        <div class="metric-head">
+          <h2 class="metric-title">Level air tandon</h2>
+          <span class="pin-tag">Pin 5 &amp; 18</span>
+        </div>
+        <div class="metric-reading">
+          <span id="waterPctVal" class="metric-number">72</span>
+          <span class="metric-unit">%</span>
+        </div>
+        <div class="meter-track" aria-hidden="true">
+          <div id="waterMeterBar" class="meter-fill meter-water"></div>
+        </div>
+        <p class="metric-foot">Jarak permukaan air: <span id="distanceCmVal">12.0</span> cm (batas minimum <span id="lblWaterMin">15</span>%)</p>
+      </article>
+
+      <article class="metric-panel">
+        <div class="metric-head">
+          <h2 class="metric-title">Suhu udara</h2>
+          <span class="pin-tag">Pin 32 (DHT11)</span>
+        </div>
+        <div class="metric-reading">
+          <span id="tempVal" class="metric-number">28.5</span>
+          <span class="metric-unit">°C</span>
+        </div>
+        <div class="meter-track" aria-hidden="true">
+          <div id="tempMeterBar" class="meter-fill meter-temp"></div>
+        </div>
+        <p class="metric-foot">Rentang pantau lingkungan kebun (0 sampai 50 °C)</p>
+      </article>
+
+      <article class="metric-panel">
+        <div class="metric-head">
+          <h2 class="metric-title">Kelembapan udara</h2>
+          <span class="pin-tag">Pin 32 (DHT11)</span>
+        </div>
+        <div class="metric-reading">
+          <span id="humVal" class="metric-number">68.0</span>
+          <span class="metric-unit">%</span>
+        </div>
+        <div class="meter-track" aria-hidden="true">
+          <div id="humMeterBar" class="meter-fill meter-hum"></div>
+        </div>
+        <p class="metric-foot">Kelembapan relatif udara sekitar tanaman</p>
+      </article>
+    </section>
+
+    <section class="workspace-grid">
+      <div class="panel chart-panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">Grafik riwayat sensor (30 sampel terakhir)</h2>
+            <p class="panel-desc">Pembaruan otomatis setiap 2 detik melalui jaringan lokal</p>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-key legend-soil">Tanah (%)</span>
+            <span class="legend-key legend-water">Air tandon (%)</span>
+            <span class="legend-key legend-temp">Suhu (°C)</span>
+          </div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="historyChart" width="680" height="240" aria-label="Grafik riwayat kelembapan tanah, level air, dan suhu"></canvas>
+        </div>
+      </div>
+
+      <div class="panel control-panel">
+        <h2 class="panel-title">Kendali sistem &amp; aktuator</h2>
+        <p class="panel-desc">Relay pompa (Pin 19 Active-High) &amp; Buzzer (Pin 13)</p>
+
+        <div class="control-row">
+          <div class="control-info">
+            <span class="control-label">Mode kerja sistem</span>
+            <span id="modeDescText" class="control-sub">Otomatis dengan hysteresis kelembapan tanah</span>
+          </div>
+          <div class="segmented-group" role="group" aria-label="Pilih mode kerja">
+            <button type="button" id="btnModeAuto" class="btn-segment is-selected">Otomatis</button>
+            <button type="button" id="btnModeManual" class="btn-segment">Manual</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="control-info">
+            <span class="control-label">Status pompa air</span>
+            <span id="pumpStateText" class="control-sub">Pompa mati (Relay nonaktif)</span>
+          </div>
+          <div class="action-group">
+            <button type="button" id="btnPumpToggle" class="btn-primary" disabled>Nyalakan pompa</button>
+          </div>
+        </div>
+
+        <form id="thresholdForm" class="threshold-form">
+          <h3 class="form-title">Ambang batas otomatis (Preferences NVS)</h3>
+          <div class="input-grid">
+            <label class="field">
+              <span class="field-label">Ambang kering (%)</span>
+              <input type="number" id="inSoilDry" min="5" max="90" value="35" required>
+            </label>
+            <label class="field">
+              <span class="field-label">Ambang basah (%)</span>
+              <input type="number" id="inSoilWet" min="10" max="95" value="65" required>
+            </label>
+            <label class="field">
+              <span class="field-label">Air minimum (%)</span>
+              <input type="number" id="inWaterMin" min="5" max="80" value="15" required>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" id="btnSaveThresh" class="btn-secondary">Simpan ke memori</button>
+            <span id="formFeedback" class="form-feedback" aria-live="polite"></span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel sim-panel" aria-label="Panel simulasi pengujian">
+      <div class="sim-header">
+        <div>
+          <h2 class="panel-title">Mode simulasi &amp; uji skenario cepat</h2>
+          <p class="panel-desc">Gunakan saat pengujian dashboard tanpa sensor fisik atau untuk demonstrasi cepat tiap kondisi status</p>
+        </div>
+        <button type="button" id="btnSimToggle" class="btn-secondary">Mode sensor fisik</button>
+      </div>
+      <div class="sim-presets">
+        <button type="button" class="btn-preset" data-soil="22" data-water="80">Simulasi tanah kering</button>
+        <button type="button" class="btn-preset" data-soil="75" data-water="85">Simulasi normal</button>
+        <button type="button" class="btn-preset" data-soil="30" data-water="8">Simulasi tandon habis</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Trainer kit test sketches (bukan bagian project utama)
+Code_test/
+*.docx
+
+# PlatformIO & IDE
+.pio/
+.vscode/
+.idea/
+*.swp
+*.bak

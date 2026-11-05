@@ -1,0 +1,514 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Field · contrast: pass · v2.0.0 */
+/* critique: telemetry console for local ESP32 irrigation system; tabular figures and transform-based meters */
+
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --color-bg: #f4f6f2;
+  --color-surface: #fbfcfa;
+  --color-surface-subtle: #ecf0e8;
+  --color-border: #d7dfd1;
+  --color-border-strong: #b6c2ad;
+
+  --color-ink: #161d15;
+  --color-ink-2: #414d3f;
+  --color-ink-3: #616e5e;
+
+  --color-accent: #1d6b42;
+  --color-accent-hover: #155232;
+  --color-accent-soft: #e1f2e8;
+  --color-accent-ink: #f7fbf8;
+
+  --color-water: #18628c;
+  --color-water-soft: #e0f0f8;
+
+  --color-warn: #9c5708;
+  --color-warn-soft: #fdf0dc;
+
+  --color-danger: #a82020;
+  --color-danger-soft: #fce6e6;
+
+  --color-focus: #1d6b42;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --dur-micro: 120ms;
+  --dur-short: 200ms;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  overflow-x: clip;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  caret-color: var(--color-accent);
+  scrollbar-color: var(--color-border-strong) var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--color-accent-soft);
+  color: var(--color-ink);
+}
+
+.topbar {
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 1.25rem;
+}
+
+.topbar-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.app-title {
+  font-size: 1.25rem;
+  font-weight: 650;
+  color: var(--color-ink);
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+.app-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-ink-2);
+}
+
+.meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  color: var(--color-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta-item {
+  background-color: var(--color-surface-subtle);
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.badge-online {
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.badge-offline {
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.badge-status-normal {
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.badge-status-watering {
+  background-color: var(--color-water-soft);
+  color: var(--color-water);
+}
+
+.badge-status-dry {
+  background-color: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+
+.badge-status-empty {
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.container {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.alarm-banner {
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  padding: 0.875rem 1rem;
+  font-size: 0.9375rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.metric-panel,
+.panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.125rem;
+}
+
+.metric-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.metric-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink-2);
+}
+
+.pin-tag {
+  font-size: 0.8125rem;
+  color: var(--color-ink-3);
+  background-color: var(--color-surface-subtle);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-reading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-number {
+  font-size: 2.125rem;
+  font-weight: 700;
+  color: var(--color-ink);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-unit {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-ink-2);
+}
+
+.meter-track {
+  height: 8px;
+  background-color: var(--color-surface-subtle);
+  border-radius: var(--radius-sm);
+  overflow: clip;
+  margin-bottom: 0.625rem;
+}
+
+.meter-fill {
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(0.5);
+  transition: transform var(--dur-short) ease-out;
+}
+
+.meter-soil {
+  background-color: var(--color-accent);
+}
+
+.meter-water {
+  background-color: var(--color-water);
+}
+
+.meter-temp {
+  background-color: var(--color-warn);
+}
+
+.meter-hum {
+  background-color: var(--color-accent);
+}
+
+.metric-foot {
+  font-size: 0.8125rem;
+  color: var(--color-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .workspace-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.panel-title {
+  font-size: 1.0625rem;
+  font-weight: 650;
+  color: var(--color-ink);
+}
+
+.panel-desc {
+  font-size: 0.875rem;
+  color: var(--color-ink-2);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.legend-key {
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.legend-soil {
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.legend-water {
+  background-color: var(--color-water-soft);
+  color: var(--color-water);
+}
+
+.legend-temp {
+  background-color: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+
+.canvas-wrap {
+  width: 100%;
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+}
+
+#historyChart {
+  display: block;
+  width: 100%;
+  height: 240px;
+}
+
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.control-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.control-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.control-sub {
+  font-size: 0.8125rem;
+  color: var(--color-ink-2);
+}
+
+.segmented-group {
+  display: inline-flex;
+  background-color: var(--color-surface-subtle);
+  padding: 0.2rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+button,
+input {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+button {
+  cursor: pointer;
+  min-height: 38px;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: background-color var(--dur-micro) ease, opacity var(--dur-micro) ease, transform var(--dur-micro) ease;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-segment {
+  background-color: transparent;
+  color: var(--color-ink-2);
+}
+
+.btn-segment.is-selected {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  border-color: var(--color-border-strong);
+}
+
+.btn-primary {
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+}
+
+.btn-secondary,
+.btn-preset {
+  background-color: transparent;
+  color: var(--color-ink);
+  border-color: var(--color-border-strong);
+}
+
+.btn-secondary:hover:not(:disabled),
+.btn-preset:hover:not(:disabled) {
+  background-color: var(--color-surface-subtle);
+}
+
+.threshold-form {
+  padding-top: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.form-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.8125rem;
+  color: var(--color-ink-2);
+}
+
+.field input {
+  min-height: 38px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.form-feedback {
+  font-size: 0.8125rem;
+  color: var(--color-accent);
+}
+
+.sim-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.sim-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
